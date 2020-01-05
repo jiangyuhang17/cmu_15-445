@@ -87,6 +87,11 @@ class LinearProbeHashTable : public HashTable<KeyType, ValueType, KeyComparator>
   size_t GetSize();
 
  private:
+  /**
+   * Gets the block index and the bucket index of the hash table
+   */
+  void GetIndex(const KeyType &key, const size_t &num_buckets, size_t &index, size_t &block_ind, size_t &bucket_ind);
+
   // member variable
   page_id_t header_page_id_;
   BufferPoolManager *buffer_pool_manager_;
@@ -97,6 +102,7 @@ class LinearProbeHashTable : public HashTable<KeyType, ValueType, KeyComparator>
 
   // Hash function
   HashFunction<KeyType> hash_fn_;
+
 };
 
 }  // namespace bustub
