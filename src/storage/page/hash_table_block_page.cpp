@@ -11,36 +11,47 @@
 //===----------------------------------------------------------------------===//
 
 #include "storage/page/hash_table_block_page.h"
+
 #include "storage/index/generic_key.h"
+#include "common/logger.h"
 
 namespace bustub {
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 KeyType HASH_TABLE_BLOCK_TYPE::KeyAt(slot_offset_t bucket_ind) const {
-  return {};
+  return std::get<0>(array_[bucket_ind]);
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 ValueType HASH_TABLE_BLOCK_TYPE::ValueAt(slot_offset_t bucket_ind) const {
-  return {};
+  return std::get<1>(array_[bucket_ind]);
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BLOCK_TYPE::Insert(slot_offset_t bucket_ind, const KeyType &key, const ValueType &value) {
+  if (!IsReadable(bucket_ind)) {
+      array_[bucket_ind] = {key, value};
+      occupied_[bucket_ind/8] |= (1 << bucket_ind%8);
+      readable_[bucket_ind/8] |= (1 << bucket_ind%8);
+      return true;
+  }
   return false;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
-void HASH_TABLE_BLOCK_TYPE::Remove(slot_offset_t bucket_ind) {}
+void HASH_TABLE_BLOCK_TYPE::Remove(slot_offset_t bucket_ind) {
+  if (HASH_TABLE_BLOCK_TYPE::IsOccupied(bucket_ind))
+    readable_[bucket_ind/8] &= ~(1 << bucket_ind%8);
+}
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BLOCK_TYPE::IsOccupied(slot_offset_t bucket_ind) const {
-  return false;
+  return occupied_[bucket_ind/8] & (1 << bucket_ind%8);
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BLOCK_TYPE::IsReadable(slot_offset_t bucket_ind) const {
-  return false;
+  return readable_[bucket_ind/8] & (1 << bucket_ind%8);
 }
 
 // DO NOT REMOVE ANYTHING BELOW THIS LINE
