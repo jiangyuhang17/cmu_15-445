@@ -54,14 +54,27 @@ class SimpleCatalog {
    */
   TableMetadata *CreateTable(Transaction *txn, const std::string &table_name, const Schema &schema) {
     BUSTUB_ASSERT(names_.count(table_name) == 0, "Table names should be unique!");
-    return nullptr;
+    table_oid_t table_oid = next_table_oid_++;
+    names_.insert({table_name, table_oid});
+    TableHeap* table_heap = new TableHeap{bpm_, lock_manager_, log_manager_, txn};
+    TableMetadata *table = new TableMetadata {schema, table_name, static_cast<std::unique_ptr<TableHeap>>(table_heap), table_oid};
+    tables_.insert({table_oid, static_cast<std::unique_ptr<TableMetadata>>(table)});
+    return table;
   }
 
   /** @return table metadata by name */
-  TableMetadata *GetTable(const std::string &table_name) { return nullptr; }
+  TableMetadata *GetTable(const std::string &table_name) {
+      auto iter = names_.find(table_name);
+      if (iter == names_.end()) throw std::out_of_range {"The table shouldn't exist in the catalog yet."};
+      return tables_.find(iter->second)->second.get();
+  }
 
   /** @return table metadata by oid */
-  TableMetadata *GetTable(table_oid_t table_oid) { return nullptr; }
+  TableMetadata *GetTable(table_oid_t table_oid) {
+      auto iter = tables_.find(table_oid);
+      if (iter ==tables_.end()) throw std::out_of_range {"The table shouldn't exist in the catalog yet."};
+      return iter->second.get();
+  }
 
  private:
   [[maybe_unused]] BufferPoolManager *bpm_;
