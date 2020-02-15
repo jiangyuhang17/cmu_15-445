@@ -162,16 +162,45 @@ class AggregationExecutor : public AbstractExecutor {
    */
   AggregationExecutor(ExecutorContext *exec_ctx, const AggregationPlanNode *plan,
                       std::unique_ptr<AbstractExecutor> &&child)
-      : AbstractExecutor(exec_ctx) {}
+      : AbstractExecutor(exec_ctx), plan_(plan), child_(std::move(child)),
+      aht_(SimpleAggregationHashTable(plan_->GetAggregates() ,plan_->GetAggregateTypes())),
+      aht_iterator_(aht_.Begin()) {}
 
   /** Do not use or remove this function, otherwise you will get zero points. */
   const AbstractExecutor *GetChildExecutor() const { return child_.get(); }
 
   const Schema *GetOutputSchema() override { return plan_->OutputSchema(); }
 
-  void Init() override {}
+  void Init() override {
+    child_->Init();
+    Tuple tuple;
+    while (child_->Next(&tuple)) {
+      AggregateKey aggregate_key = MakeKey(&tuple);
+      AggregateValue aggregate_value = MakeVal(&tuple);
+      aht_.InsertCombine(aggregate_key, aggregate_value);
+    }
+    aht_iterator_ = aht_.Begin();
+  }
 
-  bool Next(Tuple *tuple) override { return false; }
+  bool Next(Tuple *tuple) override {
+    while (aht_iterator_ != aht_.End()) {
+      auto group_bys = aht_iterator_.Key().group_bys_;
+      auto aggregates = aht_iterator_.Val().aggregates_;
+      if (!plan_->GetHaving() || plan_->GetHaving()->EvaluateAggregate(group_bys, aggregates).GetAs<bool>()) {
+        std::vector<Value> out_vec;
+        int count = plan_->OutputSchema()->GetColumnCount();
+        for (int i=0; i < count; i++) {
+          out_vec.push_back(plan_->OutputSchema()->GetColumn(i).GetExpr()->EvaluateAggregate(group_bys, aggregates));
+        }
+        *tuple = Tuple(out_vec, plan_->OutputSchema());
+        ++aht_iterator_;
+        return true;
+      }
+      ++aht_iterator_;
+    }
+    return false;
+
+  }
 
   /** @return the tuple as an AggregateKey */
   AggregateKey MakeKey(const Tuple *tuple) {
@@ -198,7 +227,9 @@ class AggregationExecutor : public AbstractExecutor {
   std::unique_ptr<AbstractExecutor> child_;
   /** Simple aggregation hash table. */
   // Uncomment me! SimpleAggregationHashTable aht_;
+  SimpleAggregationHashTable aht_;
   /** Simple aggregation hash table iterator. */
   // Uncomment me! SimpleAggregationHashTable::Iterator aht_iterator_;
+  SimpleAggregationHashTable::Iterator aht_iterator_;
 };
 }  // namespace bustub

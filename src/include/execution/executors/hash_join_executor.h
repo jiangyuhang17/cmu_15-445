@@ -97,16 +97,48 @@ class HashJoinExecutor : public AbstractExecutor {
    */
   HashJoinExecutor(ExecutorContext *exec_ctx, const HashJoinPlanNode *plan, std::unique_ptr<AbstractExecutor> &&left,
                    std::unique_ptr<AbstractExecutor> &&right)
-      : AbstractExecutor(exec_ctx) {}
+      : AbstractExecutor(exec_ctx), plan_(plan),
+      jht_(HT("build_hash_table", exec_ctx_->GetBufferPoolManager(), jht_comp_, jht_num_buckets_, jht_hash_fn_)),
+      left_exec_(std::move(left)), right_exec_(std::move(right)) {}
 
   /** @return the JHT in use. Do not modify this function, otherwise you will get a zero. */
   // Uncomment me! const HT *GetJHT() const { return &jht_; }
 
   const Schema *GetOutputSchema() override { return plan_->OutputSchema(); }
 
-  void Init() override {}
+  void Init() override {
+    left_exec_->Init();
+    right_exec_->Init();
+    Tuple tuple;
+    auto left_schema = left_exec_->GetOutputSchema();
+    while (left_exec_->Next(&tuple)) {
+      auto h = plan_->GetLeftKeyAt(0)->Evaluate(&tuple, left_schema).GetAs<int>();
+      jht_.Insert(exec_ctx_->GetTransaction(), h, tuple);
+    }
+  }
 
-  bool Next(Tuple *tuple) override { return false; }
+  bool Next(Tuple *tuple) override {
+    Tuple tuple1;
+    auto left_schema = left_exec_->GetOutputSchema();
+    auto right_schema = right_exec_->GetOutputSchema();
+    while (right_exec_->Next(&tuple1)) {
+      std::vector<Tuple> join_vec;
+      auto h = plan_->GetRightKeyAt(0)->Evaluate(&tuple1, right_schema).GetAs<int>();
+      jht_.GetValue(exec_ctx_->GetTransaction(), h, &join_vec);
+      for (auto tuple2 : join_vec) {
+        if (plan_->Predicate()->EvaluateJoin(&tuple2, left_schema, &tuple1, right_schema).GetAs<bool>()) {
+          std::vector<Value> out_vec;
+          int count = plan_->OutputSchema()->GetColumnCount();
+          for (int i = 0; i < count; i++) {
+            out_vec.push_back(plan_->OutputSchema()->GetColumn(i).GetExpr()->EvaluateJoin(&tuple2, left_schema, &tuple1, right_schema));
+          }
+          *tuple = Tuple(out_vec, plan_->OutputSchema());
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 
   /**
    * Hashes a tuple by evaluating it against every expression on the given schema, combining all non-null hashes.
@@ -140,7 +172,11 @@ class HashJoinExecutor : public AbstractExecutor {
 
   /** The hash table that we are using. */
   // Uncomment me! HT jht_;
+  HT jht_;
+
   /** The number of buckets in the hash table. */
   static constexpr uint32_t jht_num_buckets_ = 2;
+
+  std::unique_ptr<AbstractExecutor> left_exec_, right_exec_;
 };
 }  // namespace bustub
