@@ -2,60 +2,26 @@
 
 -----------------
 
-[![Build Status](https://travis-ci.org/cmu-db/bustub.svg?branch=master)](https://travis-ci.org/cmu-db/bustub)
-[![CircleCI](https://circleci.com/gh/cmu-db/bustub/tree/master.svg?style=svg)](https://circleci.com/gh/cmu-db/bustub/tree/master)
+# CMU 15-445 (Fall 2019)
 
-BusTub is a relational database management system built at [Carnegie Mellon University](https://db.cs.cmu.edu) for the [Introduction to Database Systems](https://15445.courses.cs.cmu.edu) (15-445/645) course. This system was developed for educational purposes and should not be used in production environments.
+## 课程传送门
 
-# WARNING: IF YOU ARE A STUDENT IN THE CLASS, DO NOT DIRECTLY FORK THIS REPO. DO NOT PUSH PROJECT SOLUTIONS PUBLICLY. THIS IS AN ACADEMIC INTEGRITY VIOLATION AND CAN LEAD TO GETTING YOUR DEGREE REVOKED, EVEN AFTER YOU GRADUATE.
+[Introduction to Database Systems](https://15445.courses.cs.cmu.edu)
 
-## Cloning this repo
+## 课程简介
 
-To create a private BusTub,
+该课程是CMU的数据库系统的基础课程（Andy Pavlo的课），共有四个Project，完善BusTub RDBMS的相应功能，具体说明见课程的assignment
 
-1. Go to `github.com/new` to create a new github repo. Pick a name, e.g. `private-bustub`, and **make sure it is private**.
-2. On your development machine, clone the public BusTub, i.e. `git clone --depth 1 git@github.com:cmu-db/bustub.git`.
-3. We will [mirror](https://git-scm.com/docs/git-push#Documentation/git-push.txt---mirror) the public BusTub repo into your own private BusTub repo. Suppose your GitHub name is `student` and your repo name is `private-bustub`. Then `cd bustub` followed by `git push --mirror git@github.com:student/private-bustub.git`. This copies everything in the public BusTub repo into your own private repo. You can now `cd ..` and `rm -rf bustub`.
-4. Clone your own private repo, `git clone git@github.com:student/private-bustub.git`.
-5. Add the public BusTub as a remote. `git remote add public git@github.com:cmu-db/bustub.git`
-6. You can pull in changes from the public BusTub with `git pull public master`.
+建议在写项目之前，先好好看Andy的课程，有条件的去听一听YouTube上的课程视频，至少要把PPT仔细过一遍，不过瘾的还可以看看课程的textbook[《Database System Concepts》](https://book.douban.com/subject/30345517/)(第七版已经出来了)
 
-We suggest working on your projects in separate branches. If you don't understand how Git branches work, [learn how](https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging). If you don't do this, you might lose all your work at some point in the semester, and nobody will be able to help you.
+## Projects
 
-## Build
+- [x] Project 1 - Clock Replacer & Buffer Pool Manager
 
-### Linux / Mac
-To ensure that you have the proper packages installed on your machine, run `sudo build_support/packages.sh`. Then run
+- [x] Project 2 - Hash Index
 
-```
-mkdir build
-cd build
-cmake ..
-make
-```
-Debug mode:
+- [x] Project 3 - Query Execution
 
-```
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-make
-```
-Debug build enables [AddressSanitizer](https://github.com/google/sanitizers), which can generate false positives for overflow on STL containers. If you encounter this, define the environment variable `ASAN_OPTIONS=detect_container_overflow=0`.
+- [ ] Project 4 - Logging & Recovery
 
-### Windows
-If you are using a rather new version of Windows 10, you can use the Windows Subsystem for Linux (WSL) to develop, build, and test Bustub. All you need is to [Install WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10). You can just choose "Ubuntu" (no specific version) in Microsoft Store. Then, enter WSL and follow the above instructions.
-
-If you are using CLion, it also [works with WSL](https://blog.jetbrains.com/clion/2018/01/clion-and-linux-toolchain-on-windows-are-now-friends).
-
-
-## Testing
-```
-cd build
-make check-tests
-```
-
-
-## TODO
-* update: when size exceed that page, table heap returns false and delete/insert tuple (rid will change and need to delete/insert from index)
-* delete empty page from table heap when delete tuple
-* implement delete table, with empty page bitmap in disk manager (how to persistent?)
-* index: unique/dup key, variable key
+ps: master分支是原始的BusTub，完成的Project都打了tag
